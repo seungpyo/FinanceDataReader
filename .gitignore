@@ -10,3 +10,5 @@ docs/build
 .idea
 *.iml
 *~
+cache/
+cache/*
