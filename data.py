@@ -20,19 +20,26 @@ def DataReader(symbol, start=None, end=None, exchange=None, data_source=None):
 
     cwd = os.path.split(__file__)[0]
     if not os.path.isfile(os.path.join(cwd, 'cache', 'ticker_cache.pkl')):
-        ticker_cache = list()
+        ticker_cache = [('000000', start, end)]  # dummy cache line
         with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
             pkl.dump(ticker_cache, f)
     with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'rb') as f:
         ticker_cache = pkl.load(f)
 
-    if symbol in ticker_cache:
-        df = pd.read_pickle((os.path.join(cwd, 'cache', '{0}.pkl'.format(symbol))))
-        return df
-    else:
-        ticker_cache.append(symbol)
-        with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
-            pkl.dump(ticker_cache, f)
+    for i, (t, s, e) in enumerate(ticker_cache):
+        if t == symbol:
+            if s <= start and end <= e:
+                df = pd.read_pickle((os.path.join(cwd, 'cache', '{0}.pkl'.format(symbol))))
+                print('CACHE HIT!')
+                return df
+            else:
+                start = min(start, s)
+                end = max(end, e)
+                del ticker_cache[i]
+                break
+    ticker_cache.append((symbol, start, end))
+    with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
+        pkl.dump(ticker_cache, f)
     
     # FRED Reader
     if data_source and data_source.upper() == 'FRED':
