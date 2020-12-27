@@ -30,8 +30,8 @@ def DataReader(symbol, start=None, end=None, exchange=None, data_source=None):
         if t == symbol:
             if s <= start and end <= e:
                 df = pd.read_pickle((os.path.join(cwd, 'cache', '{0}.pkl'.format(symbol))))
-                print('CACHE HIT!')
-                return df
+                # print('CACHE HIT!')
+                return df[start:end+timedelta(days=1)]
             else:
                 start = min(start, s)
                 end = max(end, e)
