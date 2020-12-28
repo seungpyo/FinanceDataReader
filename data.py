@@ -30,13 +30,15 @@ def DataReader(symbol, start=None, end=None, exchange=None, data_source=None):
         if t == symbol:
             if s <= start and end <= e:
                 df = pd.read_pickle((os.path.join(cwd, 'cache', '{0}.pkl'.format(symbol))))
-                # print('CACHE HIT!')
-                return df[start:end+timedelta(days=1)]
             else:
-                start = min(start, s)
-                end = max(end, e)
+                _start = min(start, s)
+                _end = max(end, e)
                 del ticker_cache[i]
+                with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
+                    pkl.dump(ticker_cache, f)
+                df = DataReader(symbol, _start, _end, exchange, data_source)
                 break
+            return df[start:end+timedelta(days=1)]
     ticker_cache.append((symbol, start, end))
     with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
         pkl.dump(ticker_cache, f)
