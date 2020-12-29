@@ -8,41 +8,39 @@ from FinanceDataReader.wikipedia.listing import (WikipediaStockListing)
 from FinanceDataReader.investing.listing import (InvestingEtfListing)
 from FinanceDataReader.naver.listing import (NaverStockListing, NaverEtfListing)
 from FinanceDataReader._utils import (_convert_letter_to_num, _validate_dates)
+import FinanceDataReader.cache as cache
+from FinanceDataReader.cache import *
 
+import os
 import re
 import pandas as pd
 from datetime import datetime, timedelta
-import pickle as pkl
-import os
 
 def DataReader(symbol, start=None, end=None, exchange=None, data_source=None):
     start, end = _validate_dates(start, end)
-
     cwd = os.path.split(__file__)[0]
-    if not os.path.isfile(os.path.join(cwd, 'cache', 'ticker_cache.pkl')):
-        ticker_cache = [('000000', start, end)]  # dummy cache line
-        with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
-            pkl.dump(ticker_cache, f)
-    with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'rb') as f:
-        ticker_cache = pkl.load(f)
+    cache.ticker_cache_init()
+    ticker_cache = cache.ticker_cache_readall()
 
     for i, (t, s, e) in enumerate(ticker_cache):
         if t == symbol:
             if s <= start and end <= e:
-                df = pd.read_pickle((os.path.join(cwd, 'cache', '{0}.pkl'.format(symbol))))
+                try:
+                    df = pd.read_pickle((os.path.join(cwd, 'cache', '{0}.pkl'.format(symbol))))
+                except FileNotFoundError:
+                    # Cache line corrupted; refresh!
+                    cache.ticker_cache_delete(i)
+                    df = DataReader(symbol, start, end, exchange, data_source)
             else:
                 _start = min(start, s)
                 _end = max(end, e)
-                del ticker_cache[i]
-                with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
-                    pkl.dump(ticker_cache, f)
+                cache.ticker_cache_delete(i)
                 df = DataReader(symbol, _start, _end, exchange, data_source)
                 break
             return df[start:end+timedelta(days=1)]
     ticker_cache.append((symbol, start, end))
-    with open(os.path.join(cwd, 'cache', 'ticker_cache.pkl'), 'wb') as f:
-        pkl.dump(ticker_cache, f)
-    
+    cache.ticker_cache_write(ticker_cache)
+
     # FRED Reader
     if data_source and data_source.upper() == 'FRED':
         ret = FredReader(symbol, start, end, exchange, data_source).read()

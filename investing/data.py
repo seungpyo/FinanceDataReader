@@ -93,6 +93,6 @@ class InvestingDailyReader:
         if 'Volume' in df.columns:
             df['Volume'] = df['Volume'].apply(_convert_letter_to_num)
         df = df.sort_index()
-        if 'Volume' in df.columnsumns:
+        if 'Volume' in df.columns:
             df = df[df['Volume'] > 0]
         return df
