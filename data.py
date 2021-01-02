@@ -23,6 +23,9 @@ def DataReader(symbol, start=None, end=None, exchange=None, data_source=None):
 
     use_cache = \
         datetime(end.year, end.month, end.day) != datetime(datetime.today().year, datetime.today().month, datetime.today().day)
+    
+    use_cache = False
+    
     if use_cache:
         cwd = os.path.split(__file__)[0]
         cache.ticker_cache_init()
@@ -43,9 +46,15 @@ def DataReader(symbol, start=None, end=None, exchange=None, data_source=None):
                     cache.ticker_cache_delete(i)
                     df = DataReader(symbol, _start, _end, exchange, data_source)
                     break
+                original_df = pd.read_pickle((os.path.join(cwd, 'cache', '{0}.pkl'.format(symbol))))
                 return df[start:end+timedelta(days=1)]
 
+        new_cacheline = (symbol, cache.date_to_cacheline(start),  cache.date_to_cacheline(end))
+        # print('ticker cache before')
+        # print(ticker_cache)
         ticker_cache.append((symbol, cache.date_to_cacheline(start),  cache.date_to_cacheline(end)))
+        # print('ticker cache before')
+        # print(ticker_cache)
         cache.ticker_cache_write(ticker_cache)
 
     # FRED Reader
